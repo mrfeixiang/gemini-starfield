@@ -1,0 +1,236 @@
+/* 全局重置 */
+body {
+    margin: 0;
+    overflow: hidden;
+    background-color: #050505;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+/* 3D 画布容器 */
+#canvas-container {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 1;
+}
+
+/* UI 层 */
+#ui-layer {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 2;
+    pointer-events: none; /* 让鼠标事件穿透到画布 */
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    padding: 2rem;
+    box-sizing: border-box;
+    background: radial-gradient(circle at center, transparent 0%, rgba(0,0,0,0.4) 100%);
+}
+
+.header {
+    color: rgba(255, 255, 255, 0.9);
+    text-shadow: 0 0 10px rgba(0, 255, 255, 0.5);
+    text-align: center;
+    pointer-events: auto;
+}
+
+h1 {
+    font-weight: 300;
+    margin: 0;
+    font-size: 2.5rem;
+    letter-spacing: 4px;
+}
+
+.subtitle {
+    font-size: 0.9rem;
+    color: #ff6699;
+    margin-top: 0.5rem;
+    margin-bottom: 1.5rem;
+    letter-spacing: 1px;
+}
+
+/* 输入区域 */
+.input-area {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    justify-content: center;
+    flex-wrap: wrap;
+    margin-bottom: 1rem;
+}
+
+input[type="text"] {
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    color: #fff;
+    padding: 10px 15px;
+    border-radius: 25px;
+    outline: none;
+    font-family: inherit;
+    backdrop-filter: blur(5px);
+    width: 180px;
+    text-align: center;
+    transition: all 0.3s ease;
+}
+
+input[type="text"]:focus {
+    background: rgba(255, 255, 255, 0.2);
+    border-color: #ff6699;
+    box-shadow: 0 0 15px rgba(255, 100, 150, 0.3);
+}
+
+button {
+    border: none;
+    color: #fff;
+    padding: 10px 20px;
+    border-radius: 25px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-size: 0.9rem;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    backdrop-filter: blur(5px);
+}
+
+button#ai-generate {
+    background: linear-gradient(135deg, #6e45e2 0%, #88d3ce 100%);
+    box-shadow: 0 0 15px rgba(110, 69, 226, 0.5);
+}
+
+button#ai-generate:hover {
+    box-shadow: 0 0 25px rgba(136, 211, 206, 0.8);
+    transform: scale(1.05);
+}
+
+button#ai-generate:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+    filter: grayscale(100%);
+}
+
+#ai-message-box {
+    min-height: 30px;
+    font-size: 1.1rem;
+    color: #bde0fe;
+    font-style: italic;
+    text-shadow: 0 0 8px rgba(189, 224, 254, 0.8);
+    opacity: 0;
+    transition: opacity 1s ease-in;
+    margin-top: 10px;
+}
+
+/* 底部状态栏 */
+.status-bar {
+    text-align: right;
+    color: rgba(255,255,255,0.6);
+    font-family: monospace;
+    font-size: 0.9rem;
+}
+
+#gesture-status {
+    color: #ff6699;
+    font-weight: bold;
+    font-size: 1.1rem;
+}
+
+/* 加载遮罩 */
+#loader {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: #000;
+    z-index: 100;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    transition: opacity 0.8s ease;
+}
+
+.loader-content {
+    text-align: center;
+    color: #ff6699;
+}
+
+.heart-icon {
+    font-size: 4rem;
+    animation: pulse 1.5s infinite;
+    margin-bottom: 20px;
+}
+
+.loader-controls {
+    margin-top: 30px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 15px;
+}
+
+.camera-permission {
+    background: linear-gradient(135deg, #ff6699, #ff3366);
+    padding: 12px 30px;
+    font-size: 1rem;
+    pointer-events: auto;
+}
+
+.camera-permission:disabled {
+    background: #444;
+    cursor: wait;
+}
+
+.no-camera-mode {
+    color: rgba(255,255,255,0.5);
+    font-size: 0.9rem;
+    text-decoration: underline;
+    cursor: pointer;
+    pointer-events: auto;
+}
+
+.no-camera-mode:hover {
+    color: #fff;
+}
+
+/* 鼠标控制栏 */
+.mouse-controls {
+    position: fixed;
+    bottom: 30px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 15px;
+    z-index: 10;
+    pointer-events: auto;
+}
+
+.mouse-btn {
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+.mouse-btn:hover {
+    background: rgba(255, 255, 255, 0.2);
+}
+
+.mouse-btn.active {
+    background: #ff6699;
+    color: #fff;
+    border: none;
+}
+
+.hidden { display: none !important; }
+.input_video { display: none; }
+
+@keyframes pulse {
+    0% { transform: scale(1); opacity: 0.8; }
+    50% { transform: scale(1.1); opacity: 1; }
+    100% { transform: scale(1); opacity: 0.8; }
+}

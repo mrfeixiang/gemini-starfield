@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>💘 Cupid's Starfield | 3D Generative Art</title>
+    
+    <!-- 引入外部样式表 -->
+    <link rel="stylesheet" href="style.css">
+
+    <!-- 第三方库 CDN -->
+    <!-- Three.js 核心 -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <!-- Three.js 字体与几何体加载器 -->
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/FontLoader.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/geometries/TextGeometry.js"></script>
+    <!-- MediaPipe Hands (手势识别) -->
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/control_utils/control_utils.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
+</head>
+<body>
+
+    <!-- 加载遮罩层 -->
+    <div id="loader">
+        <div class="loader-content">
+            <div class="heart-icon">✨</div>
+            <div id="loading-status">正在连接星际网络...</div>
+            <div class="loader-controls">
+                <button class="camera-permission" id="start-btn" disabled>资源加载中...</button>
+                <div class="no-camera-mode" id="mouse-mode-btn">跳过摄像头，使用触控模式</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 隐藏的视频元素 (用于 MediaPipe 后台处理) -->
+    <video class="input_video"></video>
+
+    <!-- UI 交互层 -->
+    <div id="ui-layer">
+        <div class="header">
+            <h1>NEURAL STARFIELD</h1>
+            <div class="subtitle">AI 多模态交互实验 | By Prof. Fei Xiang</div>
+            
+            <!-- AI 输入区域 -->
+            <div class="input-area">
+                <input type="text" id="lover-name" placeholder="输入名字 (如: Alice)..." maxlength="12">
+                <button id="ai-generate">✨ 聆听星语</button>
+            </div>
+            <!-- AI 消息反馈 -->
+            <div id="ai-message-box"></div>
+        </div>
+
+        <div class="status-bar">
+            当前手势: <span id="gesture-status">未检测到手势</span>
+            <br>
+            <span style="font-size: 0.8rem; opacity: 0.7">Particles: <span id="particle-count">0</span></span>
+        </div>
+    </div>
+
+    <!-- 鼠标控制模式 (备用) -->
+    <div class="mouse-controls hidden" id="mouse-controls">
+        <button class="mouse-btn active" id="btn-scatter">✋ 散开星空</button>
+        <button class="mouse-btn" id="btn-heart">💘 一箭穿心</button>
+    </div>
+
+    <!-- 3D 渲染容器 -->
+    <div id="canvas-container"></div>
+
+    <!-- 引入主逻辑脚本 -->
+    <script src="script.js"></script>
+</body>
+</html>
