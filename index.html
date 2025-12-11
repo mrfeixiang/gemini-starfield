@@ -3,25 +3,28 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>3D星空粒子手势交互 | Generative Starfield</title>
+    <title>💘 Cupid's Starfield | AI 交互星空</title>
+    
     <!-- Three.js 基础库 -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-    <!-- Three.js 字体加载器和文本几何体 -->
+    <!-- Three.js 字体加载器 -->
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/FontLoader.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/geometries/TextGeometry.js"></script>
 
-    <!-- MediaPipe Hands 核心库 (用于摄像头手势识别) -->
+    <!-- MediaPipe Hands (手势识别) -->
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/control_utils/control_utils.js" crossorigin="anonymous"></script>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js" crossorigin="anonymous"></script>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
 
     <style>
+        /* ================== CSS 样式部分 ================== */
         body {
             margin: 0;
             overflow: hidden;
             background-color: #050505;
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            user-select: none;
         }
         
         #canvas-container {
@@ -40,59 +43,87 @@
             width: 100%;
             height: 100%;
             z-index: 2;
-            pointer-events: none; 
+            pointer-events: none; /* 让鼠标穿透UI操作3D */
             display: flex;
             flex-direction: column;
             justify-content: space-between;
             padding: 2rem;
             box-sizing: border-box;
-            background: radial-gradient(circle at center, transparent 0%, rgba(0,0,0,0.4) 100%);
+            background: radial-gradient(circle at center, transparent 0%, rgba(0,0,0,0.6) 100%);
         }
 
         .header {
-            color: rgba(255, 255, 255, 0.9);
-            text-shadow: 0 0 10px rgba(0, 255, 255, 0.5);
+            color: rgba(255, 255, 255, 0.95);
+            text-shadow: 0 0 15px rgba(255, 100, 150, 0.6);
+            text-align: center;
+            pointer-events: auto;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
         }
 
         h1 {
             font-weight: 300;
             margin: 0;
-            font-size: 2rem;
-            letter-spacing: 2px;
+            font-size: 2.2rem;
+            letter-spacing: 4px;
         }
 
         .subtitle {
             font-size: 0.9rem;
-            color: #ff6699; /* Pink tone for romance */
+            color: #ff99cc;
             margin-top: 0.5rem;
+            letter-spacing: 1px;
+            margin-bottom: 1.5rem;
         }
 
-        /* Name Input and AI Functionality Area */
-        .input-area {
-            pointer-events: auto;
-            margin-top: 20px;
+        /* 输入区域容器 */
+        .controls-container {
+            background: rgba(0, 0, 0, 0.4);
+            padding: 15px;
+            border-radius: 20px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
             display: flex;
+            flex-direction: column;
             gap: 10px;
             align-items: center;
+        }
+
+        .input-row {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
             flex-wrap: wrap;
         }
 
-        input[type="text"] {
-            background: rgba(255, 100, 150, 0.2);
-            border: 1px solid rgba(255, 100, 150, 0.5);
+        /* 输入框通用样式 */
+        input[type="text"], input[type="password"] {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.3);
             color: #fff;
-            padding: 8px 12px;
+            padding: 8px 15px;
             border-radius: 20px;
             outline: none;
             font-family: inherit;
-            backdrop-filter: blur(5px);
-            width: 150px;
+            text-align: center;
+            transition: all 0.3s ease;
+            font-size: 0.9rem;
         }
 
+        input::placeholder { color: rgba(255,255,255,0.5); }
+
+        input:focus {
+            background: rgba(255, 255, 255, 0.2);
+            border-color: #ff6699;
+            box-shadow: 0 0 10px rgba(255, 100, 150, 0.3);
+        }
+
+        /* 按钮样式 */
         button {
-            border: 1px solid rgba(255, 100, 150, 0.8);
+            border: none;
             color: #fff;
-            padding: 8px 16px;
+            padding: 8px 20px;
             border-radius: 20px;
             cursor: pointer;
             transition: all 0.3s ease;
@@ -102,341 +133,229 @@
             gap: 5px;
         }
 
-        button#confirm-name {
-            background: rgba(255, 60, 120, 0.6);
-        }
-        button#confirm-name:hover {
-             background: rgba(255, 60, 120, 1);
-        }
-
-        /* AI Button Style */
         button#ai-generate {
             background: linear-gradient(135deg, #6e45e2 0%, #88d3ce 100%);
-            border: none;
-            box-shadow: 0 0 15px rgba(110, 69, 226, 0.5);
+            box-shadow: 0 0 15px rgba(110, 69, 226, 0.4);
         }
         button#ai-generate:hover {
-            box-shadow: 0 0 25px rgba(136, 211, 206, 0.8);
             transform: scale(1.05);
+            box-shadow: 0 0 25px rgba(136, 211, 206, 0.6);
         }
         button#ai-generate:disabled {
-            opacity: 0.5;
+            filter: grayscale(100%);
+            opacity: 0.6;
             cursor: not-allowed;
             transform: none;
         }
 
-        /* AI Message Display */
+        /* AI 消息框 */
         #ai-message-box {
             margin-top: 15px;
+            min-height: 24px;
             font-size: 1.1rem;
             color: #bde0fe;
             font-style: italic;
-            text-shadow: 0 0 5px rgba(189, 224, 254, 0.8);
-            max-width: 500px;
-            min-height: 24px;
+            text-shadow: 0 0 8px rgba(189, 224, 254, 0.8);
             opacity: 0;
-            transition: opacity 1s ease-in;
-        }
-
-        .controls {
-           display: none; 
-        }
-
-        .status {
-            position: absolute;
-            bottom: 2rem;
-            right: 2rem;
-            color: rgba(255,255,255,0.5);
-            font-size: 0.8rem;
-            font-family: monospace;
-            text-align: right;
-        }
-
-        #gesture-status {
-            color: #ff6699;
-            font-weight: bold;
-            font-size: 1.2rem;
-        }
-
-        #loader {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            color: #ff6699;
-            z-index: 10;
-            font-size: 1.2rem;
-            transition: opacity 0.5s;
+            transition: opacity 0.5s ease;
+            max-width: 600px;
             text-align: center;
         }
 
-        /* Hide video element, MediaPipe processes in background */
+        /* 底部状态 */
+        .status-bar {
+            text-align: right;
+            color: rgba(255,255,255,0.6);
+            font-size: 0.85rem;
+        }
+        #gesture-status {
+            color: #ff6699;
+            font-weight: bold;
+            font-size: 1.1rem;
+        }
+
+        /* 加载遮罩 */
+        #loader {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: #000;
+            z-index: 100;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            transition: opacity 0.8s ease;
+        }
+        .loader-content { text-align: center; color: #ff6699; }
+        .heart-icon { font-size: 4rem; animation: pulse 1.5s infinite; margin-bottom: 20px; }
+        .loader-btn {
+            margin-top: 20px;
+            background: linear-gradient(135deg, #ff6699, #ff3366);
+            padding: 10px 30px;
+            pointer-events: auto;
+            border: none; border-radius: 20px; color: white;
+        }
+        .loader-btn:disabled { background: #444; cursor: wait; }
+        .skip-btn {
+            margin-top: 15px; background: transparent; 
+            text-decoration: underline; font-size: 0.8rem; opacity: 0.6;
+            pointer-events: auto;
+        }
+
+        /* 鼠标模式控制 */
+        .mouse-controls {
+            position: fixed; bottom: 30px; left: 50%;
+            transform: translateX(-50%);
+            display: flex; gap: 15px; z-index: 10;
+            pointer-events: auto;
+        }
+        .mouse-btn {
+            background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.3);
+        }
+        .mouse-btn.active {
+            background: #ff6699; color: white; border: none;
+        }
+
+        .hidden { display: none !important; }
         .input_video { display: none; }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); opacity: 0.8; }
+            50% { transform: scale(1.1); opacity: 1; }
+        }
     </style>
 </head>
 <body>
 
+    <!-- 1. 加载页 -->
     <div id="loader">
-        系统初始化中...<br>
-        <span style="font-size: 0.8rem; opacity: 0.8;">请允许摄像头权限以进行手势识别</span>
+        <div class="loader-content">
+            <div class="heart-icon">✨</div>
+            <div id="loading-status">正在连接星际网络...</div>
+            <button class="loader-btn" id="start-btn" disabled>资源加载中...</button>
+            <button class="skip-btn" id="mouse-mode-btn">跳过摄像头 (使用鼠标/触控)</button>
+        </div>
     </div>
 
     <video class="input_video"></video>
 
+    <!-- 2. UI 交互层 -->
     <div id="ui-layer">
         <div class="header">
-            <h1>NEURAL STARFIELD: AMOUR</h1>
-            <div class="subtitle">摄像头手势交互: 张手散开，握拳示爱</div>
+            <h1>CUPID'S STARFIELD</h1>
+            <div class="subtitle">AI 多模态交互实验 | By Prof. Fei Xiang</div>
             
-            <div class="input-area">
-                <input type="text" id="lover-name" placeholder="输入心上人的名字..." maxlength="10">
-                <button id="confirm-name">确认名字</button>
-                <button id="ai-generate">✨ 聆听星语 (Listen to Stars)</button>
+            <div class="controls-container">
+                <!-- 第一行：API Key (安全起见，由用户输入) -->
+                <div class="input-row">
+                    <input type="password" id="api-key-input" placeholder="在此粘贴 Gemini API Key" style="width: 200px;">
+                </div>
+                <!-- 第二行：名字输入 + 生成按钮 -->
+                <div class="input-row">
+                    <input type="text" id="lover-name" placeholder="输入名字 (如: Alice)..." maxlength="12" style="width: 150px;">
+                    <button id="ai-generate">✨ 聆听星语</button>
+                </div>
             </div>
+
             <div id="ai-message-box"></div>
         </div>
-        
-        <div class="controls">
-            <!-- Hidden old controls -->
-        </div>
 
-        <div class="status">
-            当前手势: <span id="gesture-status">未检测到手势</span><br>
-            Particles: <span id="particle-count">0</span>
+        <div class="status-bar">
+            当前状态: <span id="gesture-status">等待指令</span>
+            <br>
+            <span style="opacity: 0.7">Particles: <span id="particle-count">0</span></span>
         </div>
     </div>
 
+    <!-- 3. 鼠标控制 (备用) -->
+    <div class="mouse-controls hidden" id="mouse-controls">
+        <button class="mouse-btn active" id="btn-scatter">✋ 散开星空</button>
+        <button class="mouse-btn" id="btn-heart">💘 一箭穿心</button>
+    </div>
+
+    <!-- 4. 3D 画布 -->
     <div id="canvas-container"></div>
 
     <script>
-        // Configuration parameters
+        // ================== JavaScript 逻辑部分 ==================
+
+        // 配置参数
         const CONFIG = {
             particleCount: 12000,
             particleSize: 1.8,
             fieldRadius: 1000,
-            baseSpeed: 0.001, 
-            lerpSpeed: 0.05, 
-            repelForce: 80, 
-            heartScale: 15, 
+            baseSpeed: 0.001,
+            lerpSpeed: 0.05,
+            repelForce: 80,
+            heartScale: 15,
             colors: [0xff6699, 0xff3366, 0xff99cc, 0xffffff],
-            // New: Micro-motion parameters
-            microSpeed: 0.005, // Speed of small oscillations
-            microRange: 15 // Range of small oscillations in pixels
+            microSpeed: 0.005, // 微动速度
+            microRange: 15     // 微动范围
         };
 
-        // Gemini API Config
-        const apiKey = ""; // Runtime environment provides key
-
-        // Three.js Core Variables
-        let scene, camera, renderer;
-        let particles, particlePositions;
-        // Stores target positions for different states
+        // 全局变量
+        let scene, camera, renderer, particles;
         let positionsInitial, positionsHeartArrow;
-        let colors, sizes;
-        let handIndicatorMesh; 
-        let nameTextMesh; 
-        let font; 
-
-        // Interaction State Variables
         let time = 0;
-        let currentGesture = 'NONE'; 
-        let handPositionNormalized = new THREE.Vector3(0, 0, 0); 
-        let handPositionWorld = new THREE.Vector3(0, 0, 0); 
+        let currentGesture = 'NONE'; // 'NONE', 'OPEN', 'FIST'
+        let handPositionWorld = new THREE.Vector3(0, 0, 0);
+        let handPositionNormalized = new THREE.Vector3(0, 0, 0);
         let belovedNameStr = "";
+        let nameTextMesh, font, handIndicatorMesh;
         let isFontLoaded = false;
+        let useMouseMode = false;
+        let animationId; // 用于追踪动画循环
 
-        // MediaPipe Variables
+        // MediaPipe
+        let hands, cameraMP;
         const videoElement = document.getElementsByClassName('input_video')[0];
-        let hands;
-        let cameraMP;
 
-        // Initialization Flow
-        initThreeJS();
-        preloadAssets().then(() => {
-            initMediaPipe();
-            animate();
-        });
+        // 初始化
+        init();
 
-        // Bind AI button event
-        document.getElementById('ai-generate').addEventListener('click', handleAIGeneration);
-
-        // ---------------------------------------------------------
-        // GEMINI AI Functionality (TTS and Poem generation functions remain the same)
-        // [TTS and Poem generation functions remain unchanged from previous versions]
-        // ---------------------------------------------------------
-
-        async function handleAIGeneration() {
-            const nameInput = document.getElementById('lover-name').value;
-            const btn = document.getElementById('ai-generate');
-            const msgBox = document.getElementById('ai-message-box');
-
-            if (!nameInput) {
-                alert("请先输入名字，让星星知道为谁而歌。");
-                return;
-            }
-
-            // Update UI state
-            btn.disabled = true;
-            btn.innerHTML = "✨ 星星正在低语...";
-            msgBox.style.opacity = 0;
+        function init() {
+            initThreeJS();
             
-            // Ensure name is confirmed to 3D scene
-            if (nameInput !== belovedNameStr) {
-                document.getElementById('lover-name').value = nameInput;
-                updateNameText();
-            }
-
-            try {
-                // 1. Generate Text
-                const poem = await generateLovePoem(nameInput);
-                
-                // Display text
-                msgBox.innerText = `"${poem}"`;
-                msgBox.style.opacity = 1;
-
-                // 2. Generate and play audio
-                btn.innerHTML = "✨ 正在合成星声...";
-                await playTTS(poem);
-
-                btn.innerHTML = "✨ 再次聆听";
-            } catch (error) {
-                console.error("AI Error:", error);
-                msgBox.innerText = "星际信号受到干扰，请稍后再试。";
-                msgBox.style.opacity = 1;
-                btn.innerHTML = "✨ 重试";
-            } finally {
-                btn.disabled = false;
-            }
-        }
-
-        async function generateLovePoem(name) {
-            const prompt = `你是一个浪漫的星际诗人。请为名字是'${name}'的人写一句简短的情话。主题要包含宇宙、星辰或永恒。20字以内，中文。不要任何解释，只返回句子。`;
-            const delays = [1000, 2000, 4000, 8000, 16000];
-            let lastError;
-
-            for (let i = 0; i <= delays.length; i++) {
-                try {
-                    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            contents: [{ parts: [{ text: prompt }] }]
-                        })
-                    });
-                    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-                    const data = await response.json();
-                    return data.candidates?.[0]?.content?.parts?.[0]?.text || "星河万顷，你是唯一的引力。";
-                } catch (error) {
-                    lastError = error;
-                    if (i < delays.length) await new Promise(resolve => setTimeout(resolve, delays[i]));
-                }
-            }
-            throw lastError;
-        }
-
-        async function playTTS(text) {
-             const payload = {
-                contents: [{ parts: [{ text: text }] }],
-                generationConfig: {
-                    responseModalities: ["AUDIO"],
-                    speechConfig: {
-                        voiceConfig: { prebuiltVoiceConfig: { voiceName: "Kore" } }
-                    }
-                },
-                model: "gemini-2.5-flash-preview-tts"
-            };
-            const delays = [1000, 2000, 4000];
+            // 绑定按钮事件
+            document.getElementById('start-btn').addEventListener('click', startCamera);
+            document.getElementById('mouse-mode-btn').addEventListener('click', startMouseMode);
+            document.getElementById('ai-generate').addEventListener('click', handleAIGeneration);
             
-            for (let i = 0; i <= delays.length; i++) {
-                try {
-                    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-tts:generateContent?key=${apiKey}`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(payload)
-                    });
-                    if (!response.ok) throw new Error(`TTS API Error: ${response.status}`);
-                    const data = await response.json();
-                    const audioContent = data.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
-                    if (audioContent) {
-                        const pcmData = base64ToArrayBuffer(audioContent);
-                        const wavBlob = pcmToWav(pcmData, 24000); 
-                        const wavUrl = URL.createObjectURL(wavBlob);
-                        const wavAudio = new Audio(wavUrl);
-                        await wavAudio.play();
-                    }
-                    return;
-                } catch (error) {
-                    if (i < delays.length) await new Promise(resolve => setTimeout(resolve, delays[i]));
-                }
-            }
-            console.warn("TTS failed after retries.");
-        }
+            // 鼠标模式事件
+            document.getElementById('btn-scatter').addEventListener('click', () => setMouseGesture('OPEN'));
+            document.getElementById('btn-heart').addEventListener('click', () => setMouseGesture('FIST'));
 
-        function base64ToArrayBuffer(base64) {
-            const binaryString = window.atob(base64);
-            const len = binaryString.length;
-            const bytes = new Uint8Array(len);
-            for (let i = 0; i < len; i++) {
-                bytes[i] = binaryString.charCodeAt(i);
-            }
-            return bytes.buffer;
-        }
+            window.addEventListener('resize', onWindowResize, false);
 
-        function pcmToWav(pcmData, sampleRate) {
-            const numChannels = 1;
-            const bitsPerSample = 16;
-            const byteRate = sampleRate * numChannels * bitsPerSample / 8;
-            const blockAlign = numChannels * bitsPerSample / 8;
-            const dataSize = pcmData.byteLength;
-            const buffer = new ArrayBuffer(44 + dataSize);
-            const view = new DataView(buffer);
-            writeString(view, 0, 'RIFF');
-            view.setUint32(4, 36 + dataSize, true);
-            writeString(view, 8, 'WAVE');
-            writeString(view, 12, 'fmt ');
-            view.setUint32(16, 16, true);
-            view.setUint16(20, 1, true); 
-            view.setUint16(22, numChannels, true);
-            view.setUint32(24, sampleRate, true);
-            view.setUint32(28, byteRate, true);
-            view.setUint16(32, blockAlign, true);
-            view.setUint16(34, bitsPerSample, true);
-            writeString(view, 36, 'data');
-            view.setUint32(40, dataSize, true);
-            const pcmBytes = new Uint8Array(pcmData);
-            const wavBytes = new Uint8Array(buffer);
-            wavBytes.set(pcmBytes, 44);
-            return new Blob([buffer], { type: 'audio/wav' });
-        }
-
-        function writeString(view, offset, string) {
-            for (let i = 0; i < string.length; i++) {
-                view.setUint8(offset + i, string.charCodeAt(i));
-            }
-        }
-
-
-        // ---------------------------------------------------------
-        // Core Three.js Logic (Micro-motion added here)
-        // ---------------------------------------------------------
-
-        async function preloadAssets() {
-            positionsHeartArrow = calculateHeartArrowShape(CONFIG.particleCount, CONFIG.heartScale);
-            const loader = new THREE.FontLoader();
-            return new Promise((resolve) => {
-                loader.load('https://cdn.jsdelivr.net/npm/three@0.128.0/examples/fonts/gentilis_bold.typeface.json', function (loadedFont) {
-                    font = loadedFont;
-                    isFontLoaded = true;
-                    updateLoaderStatus("资源加载完成，启动摄像头...");
-                    resolve();
-                });
+            // 预加载资源 (带容错处理)
+            preloadAssets().then(() => {
+                // 资源加载成功
+                console.log("Assets loaded successfully");
+                enableStart();
+            }).catch((err) => {
+                // 资源加载失败 (例如字体网络错误)，仍然强制启动
+                console.warn("Asset loading warning:", err);
+                console.log("Starting anyway...");
+                enableStart();
             });
         }
+        
+        function enableStart() {
+            const startBtn = document.getElementById('start-btn');
+            startBtn.disabled = false;
+            startBtn.innerText = "开启摄像头 (手势交互)";
+            document.getElementById('loading-status').innerText = "资源准备就绪";
+            
+            // 核心修复：确保动画循环已启动
+            if (!animationId) {
+                animate();
+            }
+        }
 
+        // ================== Three.js 核心 ==================
         function initThreeJS() {
             const container = document.getElementById('canvas-container');
             scene = new THREE.Scene();
-            scene.fog = new THREE.FogExp2(0x1a0a12, 0.0008); 
+            scene.fog = new THREE.FogExp2(0x1a0a12, 0.0008);
 
             camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 1, 5000);
             camera.position.z = 1200;
@@ -444,38 +363,57 @@
             renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
             renderer.setPixelRatio(window.devicePixelRatio);
             renderer.setSize(window.innerWidth, window.innerHeight);
+            // 确保背景透明，以便看到 CSS 背景
+            renderer.setClearColor(0x000000, 0); 
             container.appendChild(renderer.domElement);
 
             createParticles();
             createHandIndicator();
-
-            window.addEventListener('resize', onWindowResize, false);
             document.getElementById('particle-count').innerText = CONFIG.particleCount.toLocaleString();
-            document.getElementById('confirm-name').addEventListener('click', updateNameText);
         }
 
-        function updateLoaderStatus(text) {
-            const loader = document.getElementById('loader');
-            if (loader) loader.innerHTML = text;
-        }
+        async function preloadAssets() {
+            // 1. 计算目标形态
+            positionsHeartArrow = calculateHeartArrowShape(CONFIG.particleCount, CONFIG.heartScale);
+            
+            // 2. 加载字体 (增加 Promise 超时处理，防止无限等待)
+            return new Promise((resolve, reject) => {
+                const loader = new THREE.FontLoader();
+                const timeout = setTimeout(() => {
+                    // 如果 3秒内还没加载完字体，就先 resolve 也就是放弃字体继续运行
+                    console.warn("Font loading timed out, skipping text features.");
+                    resolve(); 
+                }, 3000);
 
-        function hideLoader() {
-            const loader = document.getElementById('loader');
-            if (loader) {
-                loader.style.opacity = 0;
-                setTimeout(() => loader.remove(), 500);
-            }
+                loader.load(
+                    'https://cdn.jsdelivr.net/npm/three@0.128.0/examples/fonts/gentilis_bold.typeface.json', 
+                    (loadedFont) => {
+                        clearTimeout(timeout);
+                        font = loadedFont;
+                        isFontLoaded = true;
+                        resolve();
+                    },
+                    undefined, // onProgress
+                    (err) => {
+                        clearTimeout(timeout);
+                        console.warn("Font load error:", err);
+                        // 即使出错也 resolve，保证程序不卡死
+                        resolve(); 
+                    }
+                );
+            });
         }
 
         function createParticles() {
             const geometry = new THREE.BufferGeometry();
-            particlePositions = new Float32Array(CONFIG.particleCount * 3);
+            const positions = new Float32Array(CONFIG.particleCount * 3);
             positionsInitial = new Float32Array(CONFIG.particleCount * 3);
-            colors = new Float32Array(CONFIG.particleCount * 3);
-            sizes = new Float32Array(CONFIG.particleCount);
+            const colors = new Float32Array(CONFIG.particleCount * 3);
+            const sizes = new Float32Array(CONFIG.particleCount);
             const colorObj = new THREE.Color();
 
             for (let i = 0; i < CONFIG.particleCount; i++) {
+                // 球体分布
                 const theta = Math.random() * Math.PI * 2;
                 const phi = Math.acos((Math.random() * 2) - 1);
                 const r = Math.cbrt(Math.random()) * CONFIG.fieldRadius;
@@ -484,15 +422,15 @@
                 const y = r * Math.sin(phi) * Math.sin(theta);
                 const z = r * Math.cos(phi);
 
-                particlePositions[i * 3] = x;
-                particlePositions[i * 3 + 1] = y;
-                particlePositions[i * 3 + 2] = z;
+                positions[i * 3] = x;
+                positions[i * 3 + 1] = y;
+                positions[i * 3 + 2] = z;
                 positionsInitial[i * 3] = x;
                 positionsInitial[i * 3 + 1] = y;
                 positionsInitial[i * 3 + 2] = z;
 
-                const hexColor = CONFIG.colors[Math.floor(Math.random() * CONFIG.colors.length)];
-                colorObj.setHex(hexColor);
+                const hex = CONFIG.colors[Math.floor(Math.random() * CONFIG.colors.length)];
+                colorObj.setHex(hex);
                 colors[i * 3] = colorObj.r;
                 colors[i * 3 + 1] = colorObj.g;
                 colors[i * 3 + 2] = colorObj.b;
@@ -500,14 +438,13 @@
                 sizes[i] = Math.random() * CONFIG.particleSize + 0.5;
             }
 
-            geometry.setAttribute('position', new THREE.BufferAttribute(particlePositions, 3));
+            geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
             geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
             geometry.setAttribute('size', new THREE.BufferAttribute(sizes, 1));
 
-            const sprite = generateSprite();
             const material = new THREE.PointsMaterial({
-                size: CONFIG.particleSize * 6, 
-                map: sprite,
+                size: CONFIG.particleSize * 6,
+                map: generateSprite(),
                 vertexColors: true,
                 blending: THREE.AdditiveBlending,
                 depthWrite: false,
@@ -519,109 +456,237 @@
             scene.add(particles);
         }
 
+        // 计算一箭穿心形态
         function calculateHeartArrowShape(count, scale) {
-            const targetPositions = new Float32Array(count * 3);
+            const target = new Float32Array(count * 3);
             const heartCount = Math.floor(count * 0.8);
             const arrowCount = count - heartCount;
 
+            // 心形
             for (let i = 0; i < heartCount; i++) {
                 let t = Math.random() * Math.PI * 2;
-                let u = Math.random() * Math.PI; 
-
-                let xBase = 16 * Math.pow(Math.sin(t), 3);
-                let yBase = 13 * Math.cos(t) - 5 * Math.cos(2 * t) - 2 * Math.cos(3 * t) - Math.cos(4 * t);
-                let zThickness = (Math.random() - 0.5) * 10 * Math.sin(u);
-
-                targetPositions[i * 3] = xBase * scale;
-                targetPositions[i * 3 + 1] = yBase * scale + 100; 
-                targetPositions[i * 3 + 2] = zThickness * scale;
+                let u = Math.random() * Math.PI;
+                let x = 16 * Math.pow(Math.sin(t), 3);
+                let y = 13 * Math.cos(t) - 5 * Math.cos(2*t) - 2*Math.cos(3*t) - Math.cos(4*t);
+                let z = (Math.random() - 0.5) * 10 * Math.sin(u);
+                
+                target[i*3] = x * scale;
+                target[i*3+1] = y * scale + 100; // 向上偏移
+                target[i*3+2] = z * scale;
             }
 
-            const arrowStart = new THREE.Vector3(-400, -100, 100);
-            const arrowEnd = new THREE.Vector3(400, 300, -100);
-            const arrowDir = new THREE.Vector3().subVectors(arrowEnd, arrowStart);
-            const arrowLength = arrowDir.length();
-            arrowDir.normalize();
+            // 箭矢
+            const start = new THREE.Vector3(-400, -100, 100);
+            const end = new THREE.Vector3(400, 300, -100);
+            const dir = new THREE.Vector3().subVectors(end, start);
+            const len = dir.length();
+            dir.normalize();
 
             for (let i = 0; i < arrowCount; i++) {
                 let idx = heartCount + i;
-                let t = i / arrowCount; 
-
+                let t = i / arrowCount;
                 let pos = new THREE.Vector3();
-                
-                if (t > 0.95) {
-                     let coneT = (t - 0.95) / 0.05; 
-                     pos.copy(arrowStart).addScaledVector(arrowDir, arrowLength * (0.95 + coneT * 0.05));
-                     let radialOffset = Math.random() * Math.PI * 2;
-                     let radius = (1-coneT) * 30;
-                     let perp1 = new THREE.Vector3(0, 1, 0).cross(arrowDir).normalize();
-                     let perp2 = arrowDir.clone().cross(perp1).normalize();
-                     pos.addScaledVector(perp1, Math.cos(radialOffset) * radius);
-                     pos.addScaledVector(perp2, Math.sin(radialOffset) * radius);
 
-                } else if (t < 0.1) {
-                     pos.copy(arrowStart).addScaledVector(arrowDir, arrowLength * t);
-                     let featherAngle = (Math.random() > 0.5 ? 1 : -1) * Math.PI / 4;
-                     let featherDist = Math.random() * 40 * (1-t/0.1);
-                     let perpUp = new THREE.Vector3(0,1,0);
-                     pos.addScaledVector(perpUp, featherDist * Math.cos(featherAngle));
-
-                } else {
-                    pos.copy(arrowStart).addScaledVector(arrowDir, arrowLength * t);
-                    pos.x += (Math.random() - 0.5) * 10;
-                    pos.y += (Math.random() - 0.5) * 10;
-                    pos.z += (Math.random() - 0.5) * 10;
+                if (t > 0.95) { // 箭头
+                    let coneT = (t - 0.95) / 0.05;
+                    pos.copy(start).addScaledVector(dir, len * (0.95 + coneT * 0.05));
+                    let rad = (1 - coneT) * 30;
+                    let angle = Math.random() * Math.PI * 2;
+                    let perp1 = new THREE.Vector3(0,1,0).cross(dir).normalize();
+                    let perp2 = dir.clone().cross(perp1).normalize();
+                    pos.addScaledVector(perp1, Math.cos(angle)*rad).addScaledVector(perp2, Math.sin(angle)*rad);
+                } else if (t < 0.1) { // 箭羽
+                    pos.copy(start).addScaledVector(dir, len * t);
+                    let dist = Math.random() * 40 * (1 - t/0.1);
+                    pos.y += dist * (Math.random() > 0.5 ? 1 : -1);
+                } else { // 箭身
+                    pos.copy(start).addScaledVector(dir, len * t);
+                    pos.add(new THREE.Vector3((Math.random()-0.5)*10, (Math.random()-0.5)*10, (Math.random()-0.5)*10));
                 }
-
-                targetPositions[idx * 3] = pos.x;
-                targetPositions[idx * 3 + 1] = pos.y;
-                targetPositions[idx * 3 + 2] = pos.z;
+                target[idx*3] = pos.x;
+                target[idx*3+1] = pos.y;
+                target[idx*3+2] = pos.z;
             }
-            return targetPositions;
+            return target;
         }
 
-        function updateNameText() {
-            const inputVal = document.getElementById('lover-name').value;
-            if (!inputVal || !isFontLoaded) return;
-            belovedNameStr = inputVal;
+        // ============ 动画循环 ============
+        function animate() {
+            animationId = requestAnimationFrame(animate);
+            time += 0.01;
 
+            if (particles) {
+                particles.rotation.y += CONFIG.baseSpeed;
+                updateParticles();
+            }
+            
+            if (nameTextMesh && nameTextMesh.visible) {
+                nameTextMesh.position.y = -300 + Math.sin(time * 2) * 10;
+            }
+            renderer.render(scene, camera);
+        }
+
+        function updateParticles() {
+            const positions = particles.geometry.attributes.position.array;
+            const localHand = handPositionWorld.clone().applyMatrix4(particles.matrixWorld.invert());
+
+            // 控制名字显示
+            if (nameTextMesh) {
+                nameTextMesh.visible = (currentGesture === 'FIST' && belovedNameStr !== "");
+            }
+
+            for (let i = 0; i < CONFIG.particleCount; i++) {
+                const px = positions[i*3];
+                const py = positions[i*3+1];
+                const pz = positions[i*3+2];
+                const idx3 = i*3;
+                let tx, ty, tz;
+
+                if (currentGesture === 'FIST') {
+                    // 目标：心形
+                    tx = positionsHeartArrow[idx3];
+                    ty = positionsHeartArrow[idx3+1];
+                    tz = positionsHeartArrow[idx3+2];
+                } else {
+                    // 目标：球形星空
+                    tx = positionsInitial[idx3];
+                    ty = positionsInitial[idx3+1];
+                    tz = positionsInitial[idx3+2];
+
+                    // 斥力效果 (仅张手时)
+                    if (currentGesture === 'OPEN') {
+                        const dx = px - localHand.x;
+                        const dy = py - localHand.y;
+                        const dz = pz - localHand.z;
+                        const distSq = dx*dx + dy*dy + dz*dz;
+                        if (distSq < 300*300) {
+                            const dist = Math.sqrt(distSq);
+                            const force = (1 - dist/300) * CONFIG.repelForce;
+                            tx += (dx/dist) * force * 10;
+                            ty += (dy/dist) * force * 10;
+                            tz += (dz/dist) * force * 10;
+                        }
+                    }
+                }
+
+                // 添加微动效果 (让星空看起来是活的)
+                tx += Math.sin(time * CONFIG.microSpeed * (i%7+1)) * CONFIG.microRange;
+                ty += Math.cos(time * CONFIG.microSpeed * (i%5+1)) * CONFIG.microRange;
+                tz += Math.sin(time * CONFIG.microSpeed * (i%9+1)) * CONFIG.microRange;
+
+                // 弹性移动插值
+                positions[idx3] += (tx - px) * CONFIG.lerpSpeed;
+                positions[idx3+1] += (ty - py) * CONFIG.lerpSpeed;
+                positions[idx3+2] += (tz - pz) * CONFIG.lerpSpeed;
+            }
+            particles.geometry.attributes.position.needsUpdate = true;
+        }
+
+        // ============ AI 功能 (Gemini) ============
+        async function handleAIGeneration() {
+            const nameInput = document.getElementById('lover-name').value.trim();
+            const apiKey = document.getElementById('api-key-input').value.trim();
+            const btn = document.getElementById('ai-generate');
+            const msgBox = document.getElementById('ai-message-box');
+
+            if (!nameInput) { alert("请输入名字..."); return; }
+            if (!apiKey) { alert("请先输入 Gemini API Key (网页不会保存，仅供当前会话使用)"); return; }
+
+            // 更新名字 3D 显示
+            if (nameInput !== belovedNameStr) {
+                belovedNameStr = nameInput;
+                updateNameText();
+            }
+
+            btn.disabled = true;
+            btn.innerHTML = "✨ 正在思考...";
+            msgBox.style.opacity = 0;
+
+            try {
+                // 1. 生成诗歌
+                const poem = await generatePoem(apiKey, nameInput);
+                msgBox.innerText = `"${poem}"`;
+                msgBox.style.opacity = 1;
+
+                // 2. 语音朗读
+                btn.innerHTML = "✨ 正在合成语音...";
+                await playTTS(apiKey, poem);
+                btn.innerHTML = "✨ 再次聆听";
+            } catch (err) {
+                console.error(err);
+                msgBox.innerText = "连接失败，请检查 API Key 是否正确";
+                msgBox.style.opacity = 1;
+                btn.innerHTML = "重试";
+            } finally {
+                btn.disabled = false;
+            }
+        }
+
+        async function generatePoem(key, name) {
+            const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${key}`;
+            const prompt = `你是一个浪漫的星际诗人。请为名字是'${name}'的人写一句简短的情话。主题要包含宇宙、星辰或永恒。20字以内，中文。不要任何解释，只返回句子。`;
+            
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
+            });
+            
+            if (!response.ok) throw new Error("Poem API Failed");
+            const data = await response.json();
+            return data.candidates?.[0]?.content?.parts?.[0]?.text || "星河万顷，你是唯一的引力。";
+        }
+
+        async function playTTS(key, text) {
+            const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-tts:generateContent?key=${key}`;
+            const payload = {
+                contents: [{ parts: [{ text: text }] }],
+                generationConfig: {
+                    responseModalities: ["AUDIO"],
+                    speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: "Kore" } } }
+                },
+                model: "gemini-2.5-flash-preview-tts"
+            };
+
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify(payload)
+            });
+
+            if (!response.ok) throw new Error("TTS API Failed");
+            const data = await response.json();
+            const audioData = data.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
+            
+            if (audioData) {
+                const audio = new Audio("data:audio/wav;base64," + audioData);
+                await audio.play();
+            }
+        }
+
+        // ============ 辅助函数 ============
+        function updateNameText() {
+            if (!isFontLoaded) return;
             if (nameTextMesh) {
                 scene.remove(nameTextMesh);
                 nameTextMesh.geometry.dispose();
                 nameTextMesh.material.dispose();
             }
 
-            const textGeo = new THREE.TextGeometry(belovedNameStr, {
-                font: font,
-                size: 60,
-                height: 10, 
-                curveSegments: 12,
-                bevelEnabled: true,
-                bevelThickness: 2,
-                bevelSize: 1,
-                bevelOffset: 0,
-                bevelSegments: 5
+            const geo = new THREE.TextGeometry(belovedNameStr, {
+                font: font, size: 60, height: 10,
+                curveSegments: 12, bevelEnabled: true, bevelThickness: 2, bevelSize: 1, bevelSegments: 5
             });
-
-            textGeo.computeBoundingBox();
-            const centerOffset = - 0.5 * ( textGeo.boundingBox.max.x - textGeo.boundingBox.min.x );
-
-            const textMaterial = new THREE.MeshPhongMaterial({ 
-                color: 0xff99cc, 
-                emissive: 0xdd4477,
-                specular: 0xffffff,
-                shininess: 30
-            });
+            geo.computeBoundingBox();
+            const offset = -0.5 * (geo.boundingBox.max.x - geo.boundingBox.min.x);
             
-            nameTextMesh = new THREE.Mesh(textGeo, textMaterial);
-            nameTextMesh.position.x = centerOffset;
-            nameTextMesh.position.y = -300;
-            nameTextMesh.position.z = 50;
-            
+            const mat = new THREE.MeshPhongMaterial({ color: 0xff99cc, emissive: 0xdd4477, specular: 0xffffff, shininess: 30 });
+            nameTextMesh = new THREE.Mesh(geo, mat);
+            nameTextMesh.position.set(offset, -300, 50);
             nameTextMesh.visible = false;
             scene.add(nameTextMesh);
 
-            if(!scene.getObjectByName("textLight")) {
+            if (!scene.getObjectByName("textLight")) {
                 const light = new THREE.PointLight(0xffffff, 1, 2000);
                 light.position.set(0, -200, 500);
                 light.name = "textLight";
@@ -629,60 +694,81 @@
             }
         }
 
-        function initMediaPipe() {
-            hands = new Hands({locateFile: (file) => {
-                return `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`;
-            }});
+        function createHandIndicator() {
+            const geo = new THREE.RingGeometry(20, 25, 32);
+            const mat = new THREE.MeshBasicMaterial({ color: 0x00ffff, side: THREE.DoubleSide, transparent: true, opacity: 0 });
+            handIndicatorMesh = new THREE.Mesh(geo, mat);
+            scene.add(handIndicatorMesh);
+        }
 
-            hands.setOptions({
-                maxNumHands: 1,
-                modelComplexity: 1,
-                minDetectionConfidence: 0.6,
-                minTrackingConfidence: 0.6
-            });
+        function generateSprite() {
+            const canvas = document.createElement('canvas');
+            canvas.width = 64; canvas.height = 64;
+            const ctx = canvas.getContext('2d');
+            const grad = ctx.createRadialGradient(32, 32, 0, 32, 32, 32);
+            grad.addColorStop(0, 'rgba(255,200,220,1)');
+            grad.addColorStop(0.4, 'rgba(255,100,150,0.8)');
+            grad.addColorStop(1, 'rgba(0,0,0,0)');
+            ctx.fillStyle = grad;
+            ctx.fillRect(0, 0, 64, 64);
+            return new THREE.Texture(canvas);
+        }
 
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+
+        // ============ 交互与 MediaPipe ============
+        function startMouseMode() {
+            useMouseMode = true;
+            hideLoader();
+            document.getElementById('mouse-controls').classList.remove('hidden');
+        }
+
+        function setMouseGesture(g) {
+            currentGesture = g;
+            document.getElementById('gesture-status').innerText = g === 'FIST' ? "握拳 (聚拢)" : "张手 (散开)";
+            document.getElementById('btn-scatter').classList.toggle('active', g === 'OPEN');
+            document.getElementById('btn-heart').classList.toggle('active', g === 'FIST');
+        }
+
+        function startCamera() {
+            if(useMouseMode) return;
+            document.getElementById('start-btn').innerText = "启动中...";
+            
+            hands = new Hands({ locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}` });
+            hands.setOptions({ maxNumHands: 1, modelComplexity: 1, minDetectionConfidence: 0.6, minTrackingConfidence: 0.6 });
             hands.onResults(onHandResults);
 
             cameraMP = new Camera(videoElement, {
-                onFrame: async () => {
-                    await hands.send({image: videoElement});
-                },
-                width: 640,
-                height: 480
+                onFrame: async () => { await hands.send({ image: videoElement }); },
+                width: 640, height: 480
             });
-            cameraMP.start()
-                .then(() => hideLoader())
-                .catch(err => {
-                    updateLoaderStatus("摄像头启动失败，请检查权限或设备。");
-                    console.error(err);
-                });
+            cameraMP.start().then(hideLoader).catch(err => {
+                alert("摄像头启动失败，切换到鼠标模式");
+                startMouseMode();
+            });
         }
 
         function onHandResults(results) {
             if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
-                const landmarks = results.multiHandLandmarks[0];
-                const wrist = landmarks[0];
-                const middleFingerMCP = landmarks[9];
-                handPositionNormalized.x = (wrist.x + middleFingerMCP.x) / 2;
-                handPositionNormalized.y = (wrist.y + middleFingerMCP.y) / 2;
-                const handSize = Math.sqrt(Math.pow(wrist.x - middleFingerMCP.x, 2) + Math.pow(wrist.y - middleFingerMCP.y, 2));
-                handPositionNormalized.z = (1 - handSize) * 2 - 1; 
-                updateHandWorldPosition();
-
-                const fingerTips = [8, 12, 16, 20]; 
-                let curledFingers = 0;
+                const marks = results.multiHandLandmarks[0];
+                updateHandPos(marks);
                 
-                fingerTips.forEach(tipIdx => {
-                    const tip = landmarks[tipIdx];
-                    const distSq = Math.pow(tip.x - wrist.x, 2) + Math.pow(tip.y - wrist.y, 2);
-                    if (distSq < 0.035) {
-                        curledFingers++;
-                    }
+                // 简单的握拳检测
+                const tips = [8, 12, 16, 20];
+                let curled = 0;
+                tips.forEach(idx => {
+                    const tip = marks[idx];
+                    const wrist = marks[0];
+                    if ((tip.x-wrist.x)**2 + (tip.y-wrist.y)**2 < 0.035) curled++;
                 });
 
-                if (curledFingers >= 3) {
+                if (curled >= 3) {
                     currentGesture = 'FIST';
-                    document.getElementById('gesture-status').innerText = "握拳 (聚拢示爱)";
+                    document.getElementById('gesture-status').innerText = "握拳 (聚拢)";
                 } else {
                     currentGesture = 'OPEN';
                     document.getElementById('gesture-status').innerText = "张手 (散开)";
@@ -691,137 +777,39 @@
                 currentGesture = 'NONE';
                 document.getElementById('gesture-status').innerText = "未检测到手势";
                 handPositionNormalized.set(-1,-1,-1);
-                updateHandWorldPosition();
+                if(handIndicatorMesh) handIndicatorMesh.material.opacity = 0;
             }
         }
 
-        function updateHandWorldPosition() {
-            const ndcX = (1.0 - handPositionNormalized.x) * 2 - 1; 
-            const ndcY = -(handPositionNormalized.y * 2 - 1);
+        function updateHandPos(marks) {
+            const wrist = marks[0];
+            const mid = marks[9];
+            handPositionNormalized.x = (wrist.x + mid.x) / 2;
+            handPositionNormalized.y = (wrist.y + mid.y) / 2;
+            const size = Math.sqrt((wrist.x-mid.x)**2 + (wrist.y-mid.y)**2);
+            handPositionNormalized.z = (1 - size) * 2 - 1;
+
+            const vec = new THREE.Vector3(
+                (1 - handPositionNormalized.x) * 2 - 1,
+                -(handPositionNormalized.y * 2 - 1),
+                0.5
+            ).unproject(camera);
             
-            const vector = new THREE.Vector3(ndcX, ndcY, 0.5);
-            vector.unproject(camera);
-            const dir = vector.sub(camera.position).normalize();
-            const distance = -camera.position.z / dir.z; 
-            handPositionWorld.copy(camera.position).add(dir.multiplyScalar(distance));
+            const dir = vec.sub(camera.position).normalize();
+            const dist = -camera.position.z / dir.z;
+            handPositionWorld.copy(camera.position).add(dir.multiplyScalar(dist));
 
             if (handIndicatorMesh) {
                 handIndicatorMesh.position.copy(handPositionWorld);
-                handIndicatorMesh.material.opacity = currentGesture === 'NONE' ? 0 : 0.5;
+                handIndicatorMesh.material.opacity = 0.5;
                 handIndicatorMesh.material.color.setHex(currentGesture === 'FIST' ? 0xff3366 : 0x00ffff);
             }
         }
 
-        function animate() {
-            requestAnimationFrame(animate);
-            time += 0.01;
-
-            particles.rotation.y += CONFIG.baseSpeed;
-            updateParticlesState();
-
-            if (nameTextMesh && nameTextMesh.visible) {
-                nameTextMesh.position.y = -300 + Math.sin(time * 2) * 10;
-            }
-            renderer.render(scene, camera);
-        }
-
-        function updateParticlesState() {
-            const positions = particles.geometry.attributes.position.array;
-            const localHandPos = handPositionWorld.clone().applyMatrix4(particles.matrixWorld.invert());
-
-            if (nameTextMesh) {
-                nameTextMesh.visible = (currentGesture === 'FIST' && belovedNameStr !== "");
-            }
-
-            for (let i = 0; i < CONFIG.particleCount; i++) {
-                const px = positions[i * 3];
-                const py = positions[i * 3 + 1];
-                const pz = positions[i * 3 + 2];
-                const idx3 = i * 3;
-
-                let tx, ty, tz;
-
-                if (currentGesture === 'FIST') {
-                    // Mode 1: FIST -> Morph to Heart/Arrow
-                    tx = positionsHeartArrow[idx3];
-                    ty = positionsHeartArrow[idx3 + 1];
-                    tz = positionsHeartArrow[idx3 + 2];
-
-                    // Add micro-motion to the target position
-                    tx += Math.sin(time * CONFIG.microSpeed * (i % 7 + 1)) * CONFIG.microRange;
-                    ty += Math.cos(time * CONFIG.microSpeed * (i % 5 + 1)) * CONFIG.microRange;
-                    tz += Math.sin(time * CONFIG.microSpeed * (i % 9 + 1)) * CONFIG.microRange;
-
-                    // Smooth transition (Lerp)
-                    positions[idx3]     += (tx - px) * CONFIG.lerpSpeed;
-                    positions[idx3 + 1] += (ty - py) * CONFIG.lerpSpeed;
-                    positions[idx3 + 2] += (tz - pz) * CONFIG.lerpSpeed;
-                } else {
-                    // Mode 2 & 3: OPEN or NONE -> Return to Initial Sphere
-                    tx = positionsInitial[idx3];
-                    ty = positionsInitial[idx3 + 1];
-                    tz = positionsInitial[idx3 + 2];
-
-                    // Add micro-motion to the target position
-                    tx += Math.sin(time * CONFIG.microSpeed * (i % 7 + 1)) * CONFIG.microRange * 0.5;
-                    ty += Math.cos(time * CONFIG.microSpeed * (i % 5 + 1)) * CONFIG.microRange * 0.5;
-                    tz += Math.sin(time * CONFIG.microSpeed * (i % 9 + 1)) * CONFIG.microRange * 0.5;
-
-                    // If OPEN, apply repulsion force
-                    if (currentGesture === 'OPEN') {
-                        const dx = px - localHandPos.x;
-                        const dy = py - localHandPos.y;
-                        const dz = pz - localHandPos.z;
-                        const distSq = dx*dx + dy*dy + dz*dz;
-                        const influenceRadiusSq = 300 * 300; 
-
-                        if (distSq < influenceRadiusSq) {
-                            const dist = Math.sqrt(distSq);
-                            const force = (1 - dist / 300) * CONFIG.repelForce;
-                            tx += (dx / dist) * force * 10;
-                            ty += (dy / dist) * force * 10;
-                            tz += (dz / dist) * force * 10;
-                        }
-                    }
-                    // Elastic return to target position
-                    positions[idx3]     += (tx - px) * (CONFIG.lerpSpeed * 0.5);
-                    positions[idx3 + 1] += (ty - py) * (CONFIG.lerpSpeed * 0.5);
-                    positions[idx3 + 2] += (tz - pz) * (CONFIG.lerpSpeed * 0.5);
-                }
-            }
-            particles.geometry.attributes.position.needsUpdate = true;
-        }
-
-        function createHandIndicator() {
-             const geometry = new THREE.RingGeometry(20, 25, 32);
-             const material = new THREE.MeshBasicMaterial({ 
-                 color: 0x00ffff, 
-                 side: THREE.DoubleSide, 
-                 transparent: true, 
-                 opacity: 0, 
-                 blending: THREE.AdditiveBlending
-             });
-             handIndicatorMesh = new THREE.Mesh(geometry, material);
-             scene.add(handIndicatorMesh);
-         }
-
-        function generateSprite() {
-            const canvas = document.createElement('canvas');
-            canvas.width = 64; canvas.height = 64;
-            const context = canvas.getContext('2d');
-            const gradient = context.createRadialGradient(32, 32, 0, 32, 32, 32);
-            gradient.addColorStop(0, 'rgba(255,200,220,1)'); 
-            gradient.addColorStop(0.4, 'rgba(255,100,150,0.8)');
-            gradient.addColorStop(1, 'rgba(0,0,0,0)');
-            context.fillStyle = gradient;
-            context.fillRect(0, 0, 64, 64);
-            return new THREE.Texture(canvas);
-        }
-
-        function onWindowResize() {
-            camera.aspect = window.innerWidth / window.innerHeight;
-            camera.updateProjectionMatrix();
-            renderer.setSize(window.innerWidth, window.innerHeight);
+        function hideLoader() {
+            const l = document.getElementById('loader');
+            l.style.opacity = 0;
+            setTimeout(() => l.classList.add('hidden'), 800);
         }
     </script>
 </body>
