@@ -1,5 +1,5 @@
 **💘 Cupid's Starfield \| 丘比特的星空** 
- [Live Demo](https://www.google.com/search?q=https://mrfeixiang.github.io/gemini-starfield/).
+ [Live Demo](https://mrfeixiang.github.io/gemini-starfield/).
 
 **🌟 Concept \| 项目理念**
 
@@ -56,4 +56,5 @@ Developed by **Professor Fei Xiang**, this project demonstrates how abstract dat
 -   Specialization: New Drug Development, AI Integration in Biomedical Sciences & Education.
 
 *© 2025 Fei Xiang. All Rights Reserved.*
+
 
